@@ -498,7 +498,14 @@ const LandingPage = () => {
             <div>
               <h4 className="text-sm font-semibold text-white">Contact</h4>
               <p className="mt-3 text-sm text-gray-400">
-                support@smartstudy.app
+                website: support@smartstudy.app
+              </p>
+              <p></p>
+              <p className="text-sm text-gray-400">
+                Email: niyonsengafelicien11@gmail.com
+              </p>
+              <p className="text-sm text-gray-400">
+                Call & whatapp: 0782076805
               </p>
               <p className="text-sm text-gray-400">
                 Mon - Fri, 9:00AM - 5:00PM
