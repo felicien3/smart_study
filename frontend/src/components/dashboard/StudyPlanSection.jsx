@@ -33,7 +33,9 @@ const StudyPlanSection = ({
     const withScores = [...(displayedPlan || [])]
       .map((row) => ({
         ...row,
-        latest_score: Number(subjectScoreById[row.subject_id] ?? row.latest_score ?? 50),
+        latest_score: Number(
+          subjectScoreById[row.subject_id] ?? row.latest_score ?? 50,
+        ),
       }))
       .sort((a, b) => {
         if (a.latest_score !== b.latest_score) {
@@ -88,7 +90,8 @@ const StudyPlanSection = ({
       const preferredDayIndex = index % dayCount;
       let targetDay = null;
       for (let offset = 0; offset < dayCount; offset += 1) {
-        const candidate = scheduleByDay[(preferredDayIndex + offset) % dayCount];
+        const candidate =
+          scheduleByDay[(preferredDayIndex + offset) % dayCount];
         const existsSameSubject = candidate.sessions.some(
           (session) => session.subjectId === row.subject_id,
         );
@@ -207,18 +210,20 @@ const StudyPlanSection = ({
             className="px-5 py-2 rounded-xl font-medium border border-slate-300 text-slate-700 hover:bg-slate-50 transition"
             onClick={() => setShowLastSchedule((prev) => !prev)}
           >
-            {showLastSchedule ? "Hide Last Schedule" : "View Last Week Schedule"}
+            {showLastSchedule
+              ? "Hide Last Schedule"
+              : "View Last Week Schedule"}
           </button>
         )}
       </div>
       {needsNewPlan && (
         <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Last week has ended. Generate a new study plan for week{" "}
-          {currentWeek ?? "current"}.
+          Last week has ended. Generate a new study plan for week{""}.
         </p>
       )}
       <p className="mb-4 text-sm text-slate-600">
-        Hours are mark-driven: high marks get less time, low marks get more time.
+        Hours are mark-driven: high marks get less time, low marks get more
+        time.
       </p>
       {showLastSchedule && (
         <p className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
@@ -246,13 +251,27 @@ const StudyPlanSection = ({
             <table className="min-w-[980px] w-full text-sm border-collapse">
               <thead className="bg-slate-100 text-slate-700">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">#</th>
-                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">Day</th>
-                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">Date</th>
-                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">Subject</th>
-                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">Session Detail</th>
-                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">Time</th>
-                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">
+                    #
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">
+                    Day
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">
+                    Date
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">
+                    Subject
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">
+                    Session Detail
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">
+                    Time
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -296,13 +315,16 @@ const StudyPlanSection = ({
             </table>
           </div>
           {filteredRows.length === 0 && (
-            <p className="text-sm text-slate-500">No schedule rows match your search.</p>
+            <p className="text-sm text-slate-500">
+              No schedule rows match your search.
+            </p>
           )}
           {filteredRows.length > 0 && (
             <div className="flex items-center justify-between text-sm text-slate-600">
               <span>
-                Showing {(page - 1) * perPage + 1}-{Math.min(page * perPage, filteredRows.length)}{" "}
-                of {filteredRows.length}
+                Showing {(page - 1) * perPage + 1}-
+                {Math.min(page * perPage, filteredRows.length)} of{" "}
+                {filteredRows.length}
               </span>
               <div className="flex gap-2">
                 <button
@@ -315,7 +337,9 @@ const StudyPlanSection = ({
                 <button
                   className="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-50"
                   disabled={page === totalPages}
-                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  onClick={() =>
+                    setPage((prev) => Math.min(totalPages, prev + 1))
+                  }
                 >
                   Next
                 </button>
@@ -329,7 +353,3 @@ const StudyPlanSection = ({
 };
 
 export default StudyPlanSection;
-
-
-
-

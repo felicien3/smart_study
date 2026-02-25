@@ -90,7 +90,7 @@ const Login = () => {
             <ul className="auth-showcase-list">
               <li>Adaptive weekly schedules from your latest scores</li>
               <li>Prioritized time for weak subjects and exam urgency</li>
-              <li>Track recommendation based on subject performance</li>
+              <li>Pathway, faculty, and career guidance from performance trends</li>
             </ul>
           </div>
           <div className="auth-shapes" aria-hidden="true">

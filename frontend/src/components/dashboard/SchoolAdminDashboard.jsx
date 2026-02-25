@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { downloadExcelFromRows } from "../../utils/exportExcel.js";
+import ActionToast from "../common/ActionToast.jsx";
 
 const SchoolAdminDashboard = () => {
   const { user, token, logout } = useAuth();
@@ -10,11 +11,21 @@ const SchoolAdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("students");
   const [showAddStudent, setShowAddStudent] = useState(false);
+  const [showEditStudentModal, setShowEditStudentModal] = useState(false);
+  const [editingStudentId, setEditingStudentId] = useState(null);
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [commentTarget, setCommentTarget] = useState({ studentId: null, logId: null });
+  const [commentText, setCommentText] = useState("");
   const [newStudent, setNewStudent] = useState({
     name: "",
     email: "",
     phone: "",
     password: "",
+  });
+  const [editStudentForm, setEditStudentForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
   });
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentDetails, setStudentDetails] = useState(null);
@@ -156,6 +167,52 @@ const SchoolAdminDashboard = () => {
     }
   };
 
+  const openEditStudentModal = (student) => {
+    setEditingStudentId(student.user_id);
+    setEditStudentForm({
+      name: student.name || "",
+      email: student.email || "",
+      phone: student.phone || "",
+    });
+    setShowEditStudentModal(true);
+  };
+
+  const handleUpdateStudent = async (e) => {
+    e.preventDefault();
+    if (!editingStudentId) return;
+
+    try {
+      setError("");
+      setSuccess("");
+      const payload = {
+        name: editStudentForm.name.trim(),
+        email: editStudentForm.email.trim(),
+        phone: editStudentForm.phone.trim(),
+      };
+
+      const data = await request(
+        `http://localhost:5000/api/admin/students/${editingStudentId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      setSuccess(data.message || "Student updated successfully");
+      setShowEditStudentModal(false);
+      setEditingStudentId(null);
+      await fetchStudents();
+      await fetchAnalytics();
+
+      if (selectedStudent === editingStudentId) {
+        await fetchStudentDetails(editingStudentId);
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   const fetchStudentDetails = async (studentId) => {
     try {
       const data = await request(`http://localhost:5000/api/admin/students/${studentId}`);
@@ -201,9 +258,18 @@ const SchoolAdminDashboard = () => {
     }
   };
 
-  const handleAddPerformanceComment = async (studentId, logId) => {
-    const comment = window.prompt("Add comment for this performance:");
-    if (!comment || !comment.trim()) return;
+  const openCommentModal = (studentId, logId) => {
+    setCommentTarget({ studentId, logId });
+    setCommentText("");
+    setShowCommentModal(true);
+  };
+
+  const handleAddPerformanceComment = async (e) => {
+    e.preventDefault();
+    const studentId = commentTarget.studentId;
+    const logId = commentTarget.logId;
+    const comment = commentText.trim();
+    if (!studentId || !logId || !comment) return;
 
     try {
       setError("");
@@ -211,9 +277,10 @@ const SchoolAdminDashboard = () => {
       await request(`http://localhost:5000/api/admin/students/${studentId}/performance-comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ log_id: logId, comment: comment.trim() }),
+        body: JSON.stringify({ log_id: logId, comment }),
       });
       setSuccess("Performance comment added successfully.");
+      setShowCommentModal(false);
       await fetchStudentDetails(studentId);
     } catch (e) {
       setError(e.message);
@@ -279,6 +346,17 @@ const SchoolAdminDashboard = () => {
 
   return (
     <div className="dashboard-container">
+      <ActionToast
+        type="error"
+        message={error}
+        onClose={() => setError("")}
+      />
+      <ActionToast
+        type="success"
+        message={success}
+        offset={error ? 1 : 0}
+        onClose={() => setSuccess("")}
+      />
       <aside className="dashboard-sidebar">
         <div>
           <div className="dashboard-sidebar-brand">SmartStudy</div>
@@ -337,9 +415,6 @@ const SchoolAdminDashboard = () => {
         </header>
 
         <main className="dashboard-main space-y-4">
-          {error && <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700">{error}</div>}
-          {success && <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700">{success}</div>}
-
           {activeTab === "profile" && (
             <div className="bg-white rounded-xl shadow p-5">
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Profile</h3>
@@ -477,6 +552,13 @@ const SchoolAdminDashboard = () => {
                             >
                               <span className="material-symbols-outlined text-[18px]">badge</span>
                               View Profile
+                            </button>
+                            <button
+                              onClick={() => openEditStudentModal(student)}
+                              className="px-3 py-1 rounded-md text-sm bg-violet-100 text-violet-700 hover:bg-violet-200 inline-flex items-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                              Edit User
                             </button>
                             <button
                               onClick={() => handleToggleStudentStatus(student.user_id, student.is_active)}
@@ -676,7 +758,7 @@ const SchoolAdminDashboard = () => {
                           <span className="font-semibold text-slate-900">{perf.score}%</span>
                           <button
                             onClick={() =>
-                              handleAddPerformanceComment(studentDetails.student?.user_id, perf.log_id)
+                              openCommentModal(studentDetails.student?.user_id, perf.log_id)
                             }
                             className="px-2 py-1 rounded-md text-xs bg-cyan-100 text-cyan-700 hover:bg-cyan-200"
                           >
@@ -758,6 +840,95 @@ const SchoolAdminDashboard = () => {
                 </button>
                 <button className="px-4 py-2 rounded-md bg-cyan-600 text-white hover:bg-cyan-700">
                   Create Student
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEditStudentModal && editingStudentId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">Edit Student</h3>
+            <p className="text-sm text-slate-500 mb-4">ID: {editingStudentId}</p>
+            <form onSubmit={handleUpdateStudent} className="space-y-3">
+              <input
+                required
+                className="w-full border rounded-md px-3 py-2"
+                placeholder="Student name"
+                value={editStudentForm.name}
+                onChange={(e) =>
+                  setEditStudentForm({ ...editStudentForm, name: e.target.value })
+                }
+              />
+              <input
+                required
+                type="email"
+                className="w-full border rounded-md px-3 py-2"
+                placeholder="Student email"
+                value={editStudentForm.email}
+                onChange={(e) =>
+                  setEditStudentForm({ ...editStudentForm, email: e.target.value })
+                }
+              />
+              <input
+                type="tel"
+                className="w-full border rounded-md px-3 py-2"
+                placeholder="Phone (optional)"
+                value={editStudentForm.phone}
+                onChange={(e) =>
+                  setEditStudentForm({ ...editStudentForm, phone: e.target.value })
+                }
+              />
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditStudentModal(false);
+                    setEditingStudentId(null);
+                  }}
+                  className="px-4 py-2 rounded-md bg-slate-100 text-slate-700"
+                >
+                  Cancel
+                </button>
+                <button className="px-4 py-2 rounded-md bg-violet-600 text-white hover:bg-violet-700">
+                  Save User
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showCommentModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">Add Performance Comment</h3>
+            <p className="text-sm text-slate-500 mb-4">Log ID: {commentTarget.logId}</p>
+            <form onSubmit={handleAddPerformanceComment} className="space-y-3">
+              <textarea
+                required
+                rows={4}
+                className="w-full border rounded-md px-3 py-2"
+                placeholder="Write your comment..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+              />
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCommentModal(false);
+                    setCommentTarget({ studentId: null, logId: null });
+                    setCommentText("");
+                  }}
+                  className="px-4 py-2 rounded-md bg-slate-100 text-slate-700"
+                >
+                  Cancel
+                </button>
+                <button className="px-4 py-2 rounded-md bg-cyan-600 text-white hover:bg-cyan-700">
+                  Save Comment
                 </button>
               </div>
             </form>

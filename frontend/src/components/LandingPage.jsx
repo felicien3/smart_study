@@ -32,7 +32,7 @@ const LandingPage = () => {
       icon: "school",
       title: "Academic Path Recommendations",
       description:
-        "Guidance based on your subject strengths and long-term performance patterns.",
+        "Get A' Level combination and university faculty guidance from your academic strengths.",
     },
     {
       icon: "autorenew",
@@ -41,10 +41,10 @@ const LandingPage = () => {
         "Study plans adjust as your scores improve or decline during the term.",
     },
     {
-      icon: "bar_chart",
-      title: "Progress Analytics",
+      icon: "psychology",
+      title: "Career Direction Insights",
       description:
-        "Understand study utilization, top subjects, and performance distribution.",
+        "Receive AI-supported career and education direction options based on your results.",
     },
     {
       icon: "verified_user",

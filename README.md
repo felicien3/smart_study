@@ -2,6 +2,21 @@
 
 SmartStudy is an AI-assisted academic support platform that helps students optimize their study planning through adaptive study allocation and provides academic path recommendations.
 
+## AI Integration
+
+SmartStudy integrates Artificial Intelligence to:
+
+- Generate adaptive and personalized study plans 📅
+- Recommend academic pathways (A' Level combinations and university faculties) 🎓
+- Analyze student performance and identify weak subjects 📊
+- Automatically adjust study hours based on progress and exam urgency ⚙️
+- Provide intelligent academic guidance and decision support for students and schools 🤖
+- Predict suitable career and education directions based on results 🔎
+
+Notes:
+- Current implementation is hybrid: rule-based recommendation/analytics with optional OpenAI-enhanced recommendation reasoning.
+- Career-direction prediction is currently guidance-oriented and should be treated as advisory support, not deterministic prediction.
+
 ## Features
 
 - **User Authentication**: Register and login functionality with JWT tokens
@@ -100,6 +115,10 @@ env
    DB_USER=postgres
    DB_PASSWORD=your_password
    JWT_SECRET=your_jwt_secret
+   OPENAI_API_KEY=your_openai_api_key
+   OPENAI_MODEL=gpt-4.1-mini
+   # Optional override, usually keep default:
+   # OPENAI_BASE_URL=https://api.openai.com/v1/chat/completions
 
 ```
 
@@ -238,6 +257,17 @@ json
 | Method | Endpoint                       | Description                      |
 | ------ | ------------------------------ | -------------------------------- |
 | GET    | `/api/academic-recommendation` | Get academic path recommendation |
+
+By default, recommendations use the rule engine. If `OPENAI_API_KEY` is set, the backend calls OpenAI to refine `recommended_path` and `reasoning`, while still returning the same response shape and preserving a rule-based fallback when AI is unavailable.
+
+Current recommendation response also includes:
+- `ai_insights.weak_subjects`
+- `ai_insights.study_hour_adjustments`
+- `ai_insights.alevel_combinations`
+- `ai_insights.university_faculties`
+- `ai_insights.career_directions`
+- `ai_insights.school_decision_support`
+- `model_source` (`openai` or `rule_engine`)
 
 ### Dashboard
 

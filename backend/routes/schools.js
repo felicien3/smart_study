@@ -75,6 +75,103 @@ router.get(
   },
 );
 
+// Update public student (student without school access) - Super Admin only
+router.put(
+  "/public-students/:studentId",
+  authenticateToken,
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const studentId = parseUserId(req.params.studentId);
+      if (!studentId) {
+        return res.status(400).json({ error: "Invalid student id" });
+      }
+
+      const name = String(req.body?.name || "").trim();
+      const email = String(req.body?.email || "").trim().toLowerCase();
+      const phone = String(req.body?.phone || "").trim() || null;
+
+      if (!name || !email) {
+        return res
+          .status(400)
+          .json({ error: "Name and email are required" });
+      }
+
+      const studentResult = await pool.query(
+        `SELECT user_id
+         FROM Users
+         WHERE user_id = $1 AND role = 'student' AND school_id IS NULL`,
+        [studentId],
+      );
+
+      if (studentResult.rows.length === 0) {
+        return res.status(404).json({ error: "Public student not found" });
+      }
+
+      const existingUser = await pool.query(
+        "SELECT user_id FROM Users WHERE email = $1 AND user_id <> $2",
+        [email, studentId],
+      );
+
+      if (existingUser.rows.length > 0) {
+        return res
+          .status(400)
+          .json({ error: "Another user already uses this email" });
+      }
+
+      const result = await pool.query(
+        `UPDATE Users
+         SET name = $1, email = $2, phone = $3
+         WHERE user_id = $4 AND role = 'student' AND school_id IS NULL
+         RETURNING user_id, name, email, phone, is_active, created_at`,
+        [name, email, phone, studentId],
+      );
+
+      res.json({
+        message: "Public student updated successfully",
+        student: result.rows[0],
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
+
+// Delete public student (student without school access) - Super Admin only
+router.delete(
+  "/public-students/:studentId",
+  authenticateToken,
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const studentId = parseUserId(req.params.studentId);
+      if (!studentId) {
+        return res.status(400).json({ error: "Invalid student id" });
+      }
+
+      const result = await pool.query(
+        `DELETE FROM Users
+         WHERE user_id = $1 AND role = 'student' AND school_id IS NULL
+         RETURNING user_id, name, email`,
+        [studentId],
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "Public student not found" });
+      }
+
+      res.json({
+        message: "Public student deleted successfully",
+        student: result.rows[0],
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
+
 // Get all schools analytics overview (Super Admin only)
 router.get(
   "/analytics/overview",
@@ -294,6 +391,70 @@ router.post(
       );
 
       res.status(201).json(result.rows[0]);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
+  },
+);
+
+// Update school admin profile (Super Admin only)
+router.put(
+  "/:id/admins/:adminId",
+  authenticateToken,
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const schoolId = parseSchoolId(req.params.id);
+      const adminId = parseUserId(req.params.adminId);
+      if (!schoolId || !adminId) {
+        return res.status(400).json({ error: "Invalid school or admin id" });
+      }
+
+      const name = String(req.body?.name || "").trim();
+      const email = String(req.body?.email || "").trim().toLowerCase();
+      const phone = String(req.body?.phone || "").trim() || null;
+
+      if (!name || !email) {
+        return res
+          .status(400)
+          .json({ error: "Name and email are required" });
+      }
+
+      const adminResult = await pool.query(
+        `SELECT user_id
+         FROM Users
+         WHERE user_id = $1 AND school_id = $2 AND role = 'school_admin'`,
+        [adminId, schoolId],
+      );
+
+      if (adminResult.rows.length === 0) {
+        return res.status(404).json({ error: "School admin not found" });
+      }
+
+      const existingUser = await pool.query(
+        "SELECT user_id FROM Users WHERE email = $1 AND user_id <> $2",
+        [email, adminId],
+      );
+
+      if (existingUser.rows.length > 0) {
+        return res
+          .status(400)
+          .json({ error: "Another user already uses this email" });
+      }
+
+      const result = await pool.query(
+        `UPDATE Users
+         SET name = $1, email = $2, phone = $3
+         WHERE user_id = $4 AND school_id = $5 AND role = 'school_admin'
+         RETURNING user_id, name, email, phone, role, school_id, is_active, created_at`,
+        [name, email, phone, adminId, schoolId],
+      );
+
+      res.json({
+        message: "School admin updated successfully",
+        admin: result.rows[0],
+      });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Server error" });

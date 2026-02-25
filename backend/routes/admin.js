@@ -113,6 +113,61 @@ router.get("/students/:id", async (req, res) => {
   }
 });
 
+// Update student profile (School Admin only)
+router.put("/students/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const schoolId = req.user.school_id;
+    const name = String(req.body?.name || "").trim();
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const phone = String(req.body?.phone || "").trim() || null;
+
+    if (!name || !email) {
+      return res
+        .status(400)
+        .json({ error: "Name and email are required" });
+    }
+
+    const studentResult = await pool.query(
+      `SELECT user_id
+       FROM Users
+       WHERE user_id = $1 AND school_id = $2 AND role = 'student'`,
+      [id, schoolId],
+    );
+
+    if (studentResult.rows.length === 0) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    const existingUser = await pool.query(
+      "SELECT user_id FROM Users WHERE email = $1 AND user_id <> $2",
+      [email, id],
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res
+        .status(400)
+        .json({ error: "Another user already uses this email" });
+    }
+
+    const result = await pool.query(
+      `UPDATE Users
+       SET name = $1, email = $2, phone = $3
+       WHERE user_id = $4 AND school_id = $5 AND role = 'student'
+       RETURNING user_id, name, email, phone, role, school_id, is_active, created_at`,
+      [name, email, phone, id, schoolId],
+    );
+
+    res.json({
+      message: "Student updated successfully",
+      user: result.rows[0],
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // Add a comment on student's performance log (School Admin only)
 router.post("/students/:id/performance-comments", async (req, res) => {
   try {

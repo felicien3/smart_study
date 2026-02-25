@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { downloadExcelFromRows } from "../../utils/exportExcel.js";
+import ActionToast from "../common/ActionToast.jsx";
 
 const statusClass = (active) =>
   active
@@ -40,6 +41,13 @@ const SuperAdminDashboard = () => {
     email: "",
     address: "",
     is_active: true,
+  });
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [editUserTarget, setEditUserTarget] = useState(null);
+  const [editUserForm, setEditUserForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
   });
 
   useEffect(() => {
@@ -493,6 +501,112 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const openEditUserModal = ({
+    userType,
+    userId,
+    schoolId = null,
+    name = "",
+    email = "",
+    phone = "",
+  }) => {
+    setEditUserTarget({ userType, userId, schoolId });
+    setEditUserForm({
+      name: name || "",
+      email: email || "",
+      phone: phone || "",
+    });
+    setShowEditUserModal(true);
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    if (!editUserTarget?.userType || !editUserTarget?.userId) return;
+
+    const payload = {
+      name: editUserForm.name.trim(),
+      email: editUserForm.email.trim(),
+      phone: editUserForm.phone.trim(),
+    };
+
+    if (!payload.name || !payload.email) {
+      setError("Name and email are required");
+      return;
+    }
+
+    try {
+      setError("");
+      setSuccess("");
+
+      let url = "";
+      if (editUserTarget.userType === "school_admin") {
+        url = `http://localhost:5000/api/schools/${editUserTarget.schoolId}/admins/${editUserTarget.userId}`;
+      } else if (editUserTarget.userType === "public_student") {
+        url = `http://localhost:5000/api/schools/public-students/${editUserTarget.userId}`;
+      } else {
+        throw new Error("Unsupported user type");
+      }
+
+      const response = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update user");
+      }
+
+      setSuccess(data.message || "User updated successfully");
+      setShowEditUserModal(false);
+      setEditUserTarget(null);
+
+      await fetchSchools();
+      if (activeTab === "publicStudents") {
+        await fetchPublicStudents();
+      }
+      if (
+        editUserTarget.userType === "school_admin" &&
+        analytics?.school?.school_id === editUserTarget.schoolId
+      ) {
+        await fetchSchoolAnalytics(editUserTarget.schoolId);
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const handleDeletePublicStudent = async (student) => {
+    if (!student?.user_id) return;
+    if (!window.confirm(`Delete public student "${student.name}"?`)) return;
+
+    try {
+      setError("");
+      setSuccess("");
+      const response = await fetch(
+        `http://localhost:5000/api/schools/public-students/${student.user_id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete public student");
+      }
+
+      setSuccess(data.message || "Public student deleted successfully");
+      await fetchPublicStudents();
+      await fetchSystemAnalytics();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   const handleExportSchools = () => {
     if (filteredSchools.length === 0) {
       setError("No school data available to export.");
@@ -614,6 +728,17 @@ const SuperAdminDashboard = () => {
 
   return (
     <div className="dashboard-container">
+      <ActionToast
+        type="error"
+        message={error}
+        onClose={() => setError("")}
+      />
+      <ActionToast
+        type="success"
+        message={success}
+        offset={error ? 1 : 0}
+        onClose={() => setSuccess("")}
+      />
       <aside className="dashboard-sidebar">
         <div>
           <div className="dashboard-sidebar-brand">SmartStudy</div>
@@ -693,9 +818,6 @@ const SuperAdminDashboard = () => {
         </header>
 
         <main className="dashboard-main space-y-4">
-          {error && <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700">{error}</div>}
-          {success && <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700">{success}</div>}
-
           {activeTab === "profile" && (
             <div className="bg-white rounded-xl shadow p-5">
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Profile</h3>
@@ -957,6 +1079,22 @@ const SuperAdminDashboard = () => {
                         </td>
                         <td className="px-4 py-3 border-b-2 border-slate-300">
                           <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() =>
+                                openEditUserModal({
+                                  userType: "school_admin",
+                                  schoolId: admin.school_id,
+                                  userId: admin.user_id,
+                                  name: admin.name,
+                                  email: admin.email,
+                                  phone: admin.phone,
+                                })
+                              }
+                              className="px-3 py-1 rounded-md text-sm bg-violet-100 text-violet-700 hover:bg-violet-200 inline-flex items-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                              Edit
+                            </button>
                             <button
                               onClick={() =>
                                 handleToggleSchoolAdminStatus(
@@ -1369,6 +1507,7 @@ const SuperAdminDashboard = () => {
                       <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">Email</th>
                       <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">Phone</th>
                       <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">Status</th>
+                      <th className="px-4 py-3 text-left font-semibold border-b-2 border-slate-300">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1399,6 +1538,32 @@ const SuperAdminDashboard = () => {
                           >
                             {student.is_active ? "Active" : "Inactive"}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 border-b-2 border-slate-300">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              onClick={() =>
+                                openEditUserModal({
+                                  userType: "public_student",
+                                  userId: student.user_id,
+                                  name: student.name,
+                                  email: student.email,
+                                  phone: student.phone,
+                                })
+                              }
+                              className="px-3 py-1 rounded-md text-sm bg-violet-100 text-violet-700 hover:bg-violet-200 inline-flex items-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeletePublicStudent(student)}
+                              className="px-3 py-1 rounded-md text-sm bg-rose-100 text-rose-700 hover:bg-rose-200 inline-flex items-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1442,6 +1607,64 @@ const SuperAdminDashboard = () => {
           )}
         </main>
       </div>
+
+      {showEditUserModal && editUserTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">
+              Edit {editUserTarget.userType === "school_admin" ? "School Admin" : "Public Student"}
+            </h3>
+            <p className="text-sm text-slate-500 mb-4">
+              User ID: {editUserTarget.userId}
+            </p>
+            <form onSubmit={handleUpdateUser} className="space-y-3">
+              <input
+                required
+                className="w-full border rounded-md px-3 py-2"
+                placeholder="Full name"
+                value={editUserForm.name}
+                onChange={(e) =>
+                  setEditUserForm({ ...editUserForm, name: e.target.value })
+                }
+              />
+              <input
+                required
+                type="email"
+                className="w-full border rounded-md px-3 py-2"
+                placeholder="Email"
+                value={editUserForm.email}
+                onChange={(e) =>
+                  setEditUserForm({ ...editUserForm, email: e.target.value })
+                }
+              />
+              <input
+                type="tel"
+                className="w-full border rounded-md px-3 py-2"
+                placeholder="Phone (optional)"
+                value={editUserForm.phone}
+                onChange={(e) =>
+                  setEditUserForm({ ...editUserForm, phone: e.target.value })
+                }
+              />
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditUserModal(false);
+                    setEditUserTarget(null);
+                  }}
+                  className="px-4 py-2 rounded-md bg-slate-100 text-slate-700"
+                >
+                  Cancel
+                </button>
+                <button className="px-4 py-2 rounded-md bg-violet-600 text-white hover:bg-violet-700">
+                  Save User
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showCreateAdmin && selectedSchool && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">

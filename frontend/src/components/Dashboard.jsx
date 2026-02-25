@@ -11,6 +11,7 @@ import SubjectModal from "./dashboard/SubjectModal.jsx";
 import PerformanceModal from "./dashboard/PerformanceModal.jsx";
 import SubjectDetailModal from "./dashboard/SubjectDetailModal.jsx";
 import RecommendationModal from "./dashboard/RecommendationModal.jsx";
+import ActionToast from "./common/ActionToast.jsx";
 import { getWeekNumber } from "./dashboard/utils.js";
 import {
   deleteSubject,
@@ -31,6 +32,7 @@ const Dashboard = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [subjectLimitWarning, setSubjectLimitWarning] = useState("");
   const [showSubjectLimitWarning, setShowSubjectLimitWarning] = useState(true);
   const [showProfilePlanWarning, setShowProfilePlanWarning] = useState(true);
@@ -163,6 +165,7 @@ const Dashboard = () => {
 
   const handleSubjectSubmit = async (event) => {
     event.preventDefault();
+    const isEdit = Boolean(subjectForm.id);
 
     try {
       await saveSubject(subjectForm, token);
@@ -171,6 +174,7 @@ const Dashboard = () => {
       setSubjectModalOpen(false);
       resetSubjectForm();
       await fetchDashboardData();
+      setSuccess(isEdit ? "Subject updated successfully." : "Subject added successfully.");
     } catch (err) {
       const message = err?.message || "";
       const isFreePlanLimitError =
@@ -198,6 +202,7 @@ const Dashboard = () => {
     try {
       await deleteSubject(subjectId, token);
       await fetchDashboardData();
+      setSuccess("Subject deleted successfully.");
     } catch (err) {
       setError(err.message);
     }
@@ -227,6 +232,7 @@ const Dashboard = () => {
         week_number: getWeekNumber(),
       });
       await fetchDashboardData();
+      setSuccess("Performance logged successfully.");
     } catch (err) {
       setError(err.message);
     }
@@ -236,6 +242,7 @@ const Dashboard = () => {
     try {
       await generateStudyPlanApi(getWeekNumber(), token);
       await fetchDashboardData();
+      setSuccess("Study plan generated successfully.");
     } catch (err) {
       setError(err.message);
     }
@@ -272,6 +279,17 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
+      <ActionToast
+        type="error"
+        message={error}
+        onClose={() => setError("")}
+      />
+      <ActionToast
+        type="success"
+        message={success}
+        offset={error ? 1 : 0}
+        onClose={() => setSuccess("")}
+      />
       <DashboardSidebar
         onLogout={logout}
         activeView={activeView}
@@ -283,13 +301,6 @@ const Dashboard = () => {
         <DashboardHeader user={user} activeView={activeView} stats={stats} />
 
         <main className="dashboard-main">
-          {error && (
-            <div className="dashboard-error">
-              <span>{error}</span>
-              <button onClick={() => setError("")}>x</button>
-            </div>
-          )}
-
           {activeView === "overview" && (
             <section className="dashboard-anchor">
               <DashboardCards stats={stats} topPerformers={topPerformers} />
