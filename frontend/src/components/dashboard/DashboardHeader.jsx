@@ -13,6 +13,10 @@ const TITLES = {
     title: "Study Plan",
     subtitle: "Review your latest generated study allocations.",
   },
+  "academic-path": {
+    title: "Academic Path",
+    subtitle: "Enter national exam marks to explore faculties and programs.",
+  },
   analytics: {
     title: "Analytics",
     subtitle: "Monitor trends and performance insights.",

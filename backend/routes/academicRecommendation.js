@@ -349,10 +349,14 @@ const buildTrackAnalysis = (subjects) => {
       return;
     }
 
-    const languageTrack = trackDefinitions.find((track) => track.key === "language");
+    const languageTrack = trackDefinitions.find(
+      (track) => track.key === "language",
+    );
     const isLanguageMatch =
       languageTrack &&
-      languageTrack.keywords.some((keyword) => keywordMatches(subjectName, keyword));
+      languageTrack.keywords.some((keyword) =>
+        keywordMatches(subjectName, keyword),
+      );
 
     if (isLanguageMatch) {
       trackStats.language.total += score;
@@ -450,7 +454,8 @@ const buildDeterministicInsights = (subjects, recommendedPath) => {
   const normalized = subjects.map((subject) => {
     const average = Number(subject.avg_score) || 0;
     const latestScore = Number(subject.latest_score ?? average) || 0;
-    const previousScore = Number(subject.previous_score ?? latestScore) || latestScore;
+    const previousScore =
+      Number(subject.previous_score ?? latestScore) || latestScore;
     const scoreChange = latestScore - previousScore;
     const difficulty = Number(subject.difficulty || 3);
 
@@ -510,7 +515,9 @@ const buildDeterministicInsights = (subjects, recommendedPath) => {
       subject: item.subject,
       average_score: item.average_score,
       latest_score: item.latest_score,
-      gap_to_target_70: Number((70 - Math.max(item.latest_score, item.average_score)).toFixed(1)),
+      gap_to_target_70: Number(
+        (70 - Math.max(item.latest_score, item.average_score)).toFixed(1),
+      ),
       days_until_exam: item.days_until_exam,
     }));
 
@@ -591,10 +598,16 @@ const ensureStudyAdjustments = (value, fallback) => {
 
 const fetchImpl = (...args) => {
   if (typeof fetch === "function") return fetch(...args);
-  return import("node-fetch").then(({ default: nodeFetch }) => nodeFetch(...args));
+  return import("node-fetch").then(({ default: nodeFetch }) =>
+    nodeFetch(...args),
+  );
 };
 
-const getOpenAiRecommendation = async ({ subjects, fallbackRecommendation, fallbackInsights }) => {
+const getOpenAiRecommendation = async ({
+  subjects,
+  fallbackRecommendation,
+  fallbackInsights,
+}) => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
@@ -620,8 +633,10 @@ const getOpenAiRecommendation = async ({ subjects, fallbackRecommendation, fallb
             difficulty: Number(subject.difficulty || 3),
             exam_date: subject.exam_date,
             avg_score: Number(subject.avg_score) || 0,
-            latest_score: Number(subject.latest_score ?? subject.avg_score) || 0,
-            previous_score: Number(subject.previous_score ?? subject.avg_score) || 0,
+            latest_score:
+              Number(subject.latest_score ?? subject.avg_score) || 0,
+            previous_score:
+              Number(subject.previous_score ?? subject.avg_score) || 0,
             performance_count: Number(subject.performance_count) || 0,
           })),
           baseline_recommendation: fallbackRecommendation,
@@ -674,6 +689,97 @@ const getOpenAiRecommendation = async ({ subjects, fallbackRecommendation, fallb
     study_hour_adjustments: parsed.study_hour_adjustments,
   };
 };
+
+const normalizeMarksPayload = (marks) => {
+  if (!Array.isArray(marks)) return [];
+
+  return marks
+    .map((entry) => ({
+      name: String(entry?.subject || entry?.name || "").trim(),
+      score: Number(entry?.score),
+    }))
+    .filter(
+      (entry) =>
+        entry.name.length > 0 &&
+        Number.isFinite(entry.score) &&
+        entry.score >= 0 &&
+        entry.score <= 100,
+    );
+};
+
+const normalizeEducationLevel = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "a_level" || normalized === "alevel") return "a_level";
+  return "o_level";
+};
+
+// Build recommendation from direct national marks input (upgraded plans only).
+router.post("/from-marks", authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role === "student" && !req.user.school_id) {
+      return res.status(403).json({
+        error: "Academic path is not available on the Basic Free plan.",
+      });
+    }
+
+    const normalizedMarks = normalizeMarksPayload(req.body?.marks);
+    const educationLevel = normalizeEducationLevel(req.body?.education_level);
+
+    if (normalizedMarks.length < 3) {
+      return res.status(400).json({
+        error:
+          "Please provide at least 3 valid subject marks with scores between 0 and 100.",
+      });
+    }
+
+    const subjectsWithTrend = normalizedMarks.map((entry, index) => ({
+      subject_id: index + 1,
+      name: entry.name,
+      difficulty: 3,
+      exam_date: null,
+      avg_score: entry.score,
+      latest_score: entry.score,
+      previous_score: entry.score,
+      performance_count: 1,
+    }));
+
+    const trackAnalysis = buildTrackAnalysis(subjectsWithTrend);
+    const fallbackRecommendation = buildRuleBasedRecommendation(trackAnalysis);
+    const normalizedFallbackPath = TRACK_PATHWAY_MAP[
+      fallbackRecommendation.recommended_path
+    ]
+      ? fallbackRecommendation.recommended_path
+      : "General";
+    const fallbackInsights = buildDeterministicInsights(
+      subjectsWithTrend,
+      normalizedFallbackPath,
+    );
+
+    res.json({
+      education_level: educationLevel,
+      recommended_path: normalizedFallbackPath,
+      reasoning: fallbackRecommendation.reasoning,
+      track_scores: fallbackRecommendation.track_scores,
+      ai_insights: {
+        weak_subjects: fallbackInsights.weak_subjects,
+        study_hour_adjustments: fallbackInsights.study_hour_adjustments,
+        alevel_combinations:
+          TRACK_PATHWAY_MAP[normalizedFallbackPath].alevel_combinations,
+        university_faculties:
+          TRACK_PATHWAY_MAP[normalizedFallbackPath].university_faculties,
+        career_directions:
+          TRACK_PATHWAY_MAP[normalizedFallbackPath].career_directions,
+        school_decision_support: fallbackInsights.school_decision_support,
+      },
+      model_source: "rule_engine",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 // Get academic path recommendation
 router.get("/", authenticateToken, async (req, res) => {
@@ -740,7 +846,9 @@ router.get("/", authenticateToken, async (req, res) => {
 
     const trackAnalysis = buildTrackAnalysis(subjectsWithTrend);
     const fallbackRecommendation = buildRuleBasedRecommendation(trackAnalysis);
-    const normalizedFallbackPath = TRACK_PATHWAY_MAP[fallbackRecommendation.recommended_path]
+    const normalizedFallbackPath = TRACK_PATHWAY_MAP[
+      fallbackRecommendation.recommended_path
+    ]
       ? fallbackRecommendation.recommended_path
       : "General";
     const fallbackInsights = buildDeterministicInsights(
@@ -756,15 +864,21 @@ router.get("/", authenticateToken, async (req, res) => {
         fallbackInsights,
       });
     } catch (openAiError) {
-      console.error("OpenAI recommendation failed; using fallback:", openAiError);
+      console.error(
+        "OpenAI recommendation failed; using fallback:",
+        openAiError,
+      );
     }
 
-    const aiSuggestedPath = String(aiRecommendation?.recommended_path || "").trim();
+    const aiSuggestedPath = String(
+      aiRecommendation?.recommended_path || "",
+    ).trim();
     const recommendedPath = TRACK_PATHWAY_MAP[aiSuggestedPath]
       ? aiSuggestedPath
       : normalizedFallbackPath;
 
-    const reasoning = aiRecommendation?.reasoning || fallbackRecommendation.reasoning;
+    const reasoning =
+      aiRecommendation?.reasoning || fallbackRecommendation.reasoning;
 
     const aiInsights = {
       weak_subjects: ensureWeakSubjects(
@@ -777,15 +891,18 @@ router.get("/", authenticateToken, async (req, res) => {
       ),
       alevel_combinations: ensureStringArray(
         aiRecommendation?.alevel_combinations,
-        (TRACK_PATHWAY_MAP[recommendedPath] || TRACK_PATHWAY_MAP.General).alevel_combinations,
+        (TRACK_PATHWAY_MAP[recommendedPath] || TRACK_PATHWAY_MAP.General)
+          .alevel_combinations,
       ),
       university_faculties: ensureStringArray(
         aiRecommendation?.university_faculties,
-        (TRACK_PATHWAY_MAP[recommendedPath] || TRACK_PATHWAY_MAP.General).university_faculties,
+        (TRACK_PATHWAY_MAP[recommendedPath] || TRACK_PATHWAY_MAP.General)
+          .university_faculties,
       ),
       career_directions: ensureStringArray(
         aiRecommendation?.career_directions,
-        (TRACK_PATHWAY_MAP[recommendedPath] || TRACK_PATHWAY_MAP.General).career_directions,
+        (TRACK_PATHWAY_MAP[recommendedPath] || TRACK_PATHWAY_MAP.General)
+          .career_directions,
       ),
       school_decision_support: ensureStringArray(
         aiRecommendation?.school_decision_support,

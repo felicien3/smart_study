@@ -77,5 +77,16 @@ export const fetchStudyPlanByWeek = (weekNumber, token) =>
 export const fetchRecommendation = (token) =>
   request("/academic-recommendation", {}, token);
 
+export const fetchAcademicPathFromMarks = (marks, educationLevel, token) =>
+  request(
+    "/academic-recommendation/from-marks",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ marks, education_level: educationLevel }),
+    },
+    token,
+  );
+
 export const fetchSubjectPerformance = (subjectId, token) =>
   request(`/performance/subject/${subjectId}`, {}, token);

@@ -7,6 +7,7 @@ import SubjectsSection from "./dashboard/SubjectsSection.jsx";
 import StudyPlanSection from "./dashboard/StudyPlanSection.jsx";
 import AnalyticsSection from "./dashboard/AnalyticsSection.jsx";
 import ProfileSection from "./dashboard/ProfileSection.jsx";
+import AcademicPathSection from "./dashboard/AcademicPathSection.jsx";
 import SubjectModal from "./dashboard/SubjectModal.jsx";
 import PerformanceModal from "./dashboard/PerformanceModal.jsx";
 import SubjectDetailModal from "./dashboard/SubjectDetailModal.jsx";
@@ -111,7 +112,10 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (isFreeStudent && activeView === "analytics") {
+    if (
+      isFreeStudent &&
+      (activeView === "analytics" || activeView === "academic-path")
+    ) {
       setActiveView("overview");
     }
   }, [isFreeStudent, activeView]);
@@ -120,6 +124,12 @@ const Dashboard = () => {
     if (isFreeStudent && nextView === "analytics") {
       setError(
         "Upgrade required: Analytics is available on upgraded plans. Please reach out to your school provider to upgrade.",
+      );
+      return;
+    }
+    if (isFreeStudent && nextView === "academic-path") {
+      setError(
+        "Upgrade required: Academic Path is available on upgraded plans. Please reach out to your school provider to upgrade.",
       );
       return;
     }
@@ -295,6 +305,7 @@ const Dashboard = () => {
         activeView={activeView}
         onChangeView={handleChangeView}
         analyticsLocked={isFreeStudent}
+        academicPathLocked={isFreeStudent}
       />
 
       <div className="dashboard-workspace">
@@ -400,6 +411,12 @@ const Dashboard = () => {
                 topPerformers={topPerformers}
                 onGetRecommendation={getRecommendation}
               />
+            </section>
+          )}
+
+          {activeView === "academic-path" && !isFreeStudent && (
+            <section className="dashboard-anchor">
+              <AcademicPathSection token={token} onError={setError} />
             </section>
           )}
 

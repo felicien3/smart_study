@@ -5,11 +5,17 @@ const DashboardSidebar = ({
   activeView,
   onChangeView,
   analyticsLocked = false,
+  academicPathLocked = false,
 }) => {
   const navItems = [
     { id: "overview", label: "Overview", icon: "dashboard" },
     { id: "subjects", label: "Subjects", icon: "menu_book" },
     { id: "study-plan", label: "Study Plan", icon: "schedule" },
+    {
+      id: "academic-path",
+      label: academicPathLocked ? "Academic Path (Upgrade)" : "Academic Path",
+      icon: academicPathLocked ? "lock" : "account_tree",
+    },
     {
       id: "analytics",
       label: analyticsLocked ? "Analytics (Upgrade)" : "Analytics",
