@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { downloadExcelFromRows } from "../../utils/exportExcel.js";
 import ActionToast from "../common/ActionToast.jsx";
+import { getApiUrl } from "../../utils/helpers.js";
 
 const statusClass = (active) =>
   active
@@ -10,6 +11,7 @@ const statusClass = (active) =>
 
 const SuperAdminDashboard = () => {
   const { user, token, logout } = useAuth();
+  const apiBase = `${getApiUrl()}/api`;
   const [schools, setSchools] = useState([]);
   const [publicStudents, setPublicStudents] = useState([]);
   const [analytics, setAnalytics] = useState(null);
@@ -197,7 +199,7 @@ const SuperAdminDashboard = () => {
   const fetchSchools = async () => {
     try {
       setError("");
-      const response = await fetch("http://localhost:5000/api/schools", {
+      const response = await fetch(`${apiBase}/schools`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -216,7 +218,7 @@ const SuperAdminDashboard = () => {
     try {
       setError("");
       const response = await fetch(
-        "http://localhost:5000/api/schools/public-students",
+        `${apiBase}/schools/public-students`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -235,7 +237,7 @@ const SuperAdminDashboard = () => {
     try {
       setError("");
       const response = await fetch(
-        "http://localhost:5000/api/schools/analytics/overview",
+        `${apiBase}/schools/analytics/overview`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       const data = await response.json();
@@ -253,7 +255,7 @@ const SuperAdminDashboard = () => {
     setError("");
     setSuccess("");
     try {
-      const response = await fetch("http://localhost:5000/api/schools", {
+      const response = await fetch(`${apiBase}/schools`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -279,7 +281,7 @@ const SuperAdminDashboard = () => {
     setError("");
     setSuccess("");
     try {
-      const response = await fetch(`http://localhost:5000/api/schools/${schoolId}`, {
+      const response = await fetch(`${apiBase}/schools/${schoolId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -316,7 +318,7 @@ const SuperAdminDashboard = () => {
     setSuccess("");
     try {
       const response = await fetch(
-        `http://localhost:5000/api/schools/${selectedSchool.school_id}`,
+        `${apiBase}/schools/${selectedSchool.school_id}`,
         {
           method: "PUT",
           headers: {
@@ -347,7 +349,7 @@ const SuperAdminDashboard = () => {
     try {
       await fetchSystemAnalytics();
       const response = await fetch(
-        `http://localhost:5000/api/schools/${schoolId}/analytics`,
+        `${apiBase}/schools/${schoolId}/analytics`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       const data = await response.json();
@@ -377,7 +379,7 @@ const SuperAdminDashboard = () => {
     try {
       const endpoint = currentStatus ? "deactivate" : "activate";
       const response = await fetch(
-        `http://localhost:5000/api/schools/${schoolId}/admins/${adminId}/${endpoint}`,
+        `${apiBase}/schools/${schoolId}/admins/${adminId}/${endpoint}`,
         {
           method: "PUT",
           headers: { Authorization: `Bearer ${token}` },
@@ -415,7 +417,7 @@ const SuperAdminDashboard = () => {
     setSuccess("");
     try {
       const response = await fetch(
-        `http://localhost:5000/api/schools/${schoolId}/admins/${adminId}/reset-password`,
+        `${apiBase}/schools/${schoolId}/admins/${adminId}/reset-password`,
         {
           method: "PUT",
           headers: {
@@ -454,7 +456,7 @@ const SuperAdminDashboard = () => {
     setSuccess("");
     try {
       const response = await fetch(
-        `http://localhost:5000/api/schools/${selectedSchool.school_id}/admins`,
+        `${apiBase}/schools/${selectedSchool.school_id}/admins`,
         {
           method: "POST",
           headers: {
@@ -539,9 +541,9 @@ const SuperAdminDashboard = () => {
 
       let url = "";
       if (editUserTarget.userType === "school_admin") {
-        url = `http://localhost:5000/api/schools/${editUserTarget.schoolId}/admins/${editUserTarget.userId}`;
+        url = `${apiBase}/schools/${editUserTarget.schoolId}/admins/${editUserTarget.userId}`;
       } else if (editUserTarget.userType === "public_student") {
-        url = `http://localhost:5000/api/schools/public-students/${editUserTarget.userId}`;
+        url = `${apiBase}/schools/public-students/${editUserTarget.userId}`;
       } else {
         throw new Error("Unsupported user type");
       }
@@ -587,7 +589,7 @@ const SuperAdminDashboard = () => {
       setError("");
       setSuccess("");
       const response = await fetch(
-        `http://localhost:5000/api/schools/public-students/${student.user_id}`,
+        `${apiBase}/schools/public-students/${student.user_id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },

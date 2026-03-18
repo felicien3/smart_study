@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { getApiUrl } from "../utils/helpers";
 
 const Login = () => {
   const [searchParams] = useSearchParams();
@@ -44,7 +45,7 @@ const Login = () => {
             password: formData.password,
           };
 
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`${getApiUrl()}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

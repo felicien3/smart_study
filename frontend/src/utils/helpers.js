@@ -55,7 +55,7 @@ export const getScoreColor = (score) => {
  * @returns {string} API base URL
  */
 export const getApiUrl = () => {
-  return import.meta.env.VITE_API_URL || "http://localhost:5000";
+  return import.meta.env.VITE_API_URL || "http://localhost:5001";
 };
 
 /**

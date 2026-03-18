@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { downloadExcelFromRows } from "../../utils/exportExcel.js";
 import ActionToast from "../common/ActionToast.jsx";
+import { getApiUrl } from "../../utils/helpers.js";
 
 const SchoolAdminDashboard = () => {
   const { user, token, logout } = useAuth();
+  const apiBase = `${getApiUrl()}/api`;
   const [students, setStudents] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [schoolInfo, setSchoolInfo] = useState(null);
@@ -104,7 +106,7 @@ const SchoolAdminDashboard = () => {
 
   const fetchSchoolInfo = async () => {
     try {
-      const data = await request("http://localhost:5000/api/admin/school");
+      const data = await request(`${apiBase}/admin/school`);
       setSchoolInfo(data);
     } catch (e) {
       setError(e.message);
@@ -114,7 +116,7 @@ const SchoolAdminDashboard = () => {
   const fetchStudents = async () => {
     try {
       setError("");
-      const data = await request("http://localhost:5000/api/admin/students");
+      const data = await request(`${apiBase}/admin/students`);
       setStudents(data);
     } catch (e) {
       setError(e.message);
@@ -123,7 +125,7 @@ const SchoolAdminDashboard = () => {
 
   const fetchAnalytics = async () => {
     try {
-      const data = await request("http://localhost:5000/api/admin/analytics");
+      const data = await request(`${apiBase}/admin/analytics`);
       setAnalytics(data);
     } catch (e) {
       setError(e.message);
@@ -135,7 +137,7 @@ const SchoolAdminDashboard = () => {
     setError("");
     setSuccess("");
     try {
-      const data = await request("http://localhost:5000/api/admin/students", {
+      const data = await request(`${apiBase}/admin/students`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newStudent),
@@ -156,7 +158,7 @@ const SchoolAdminDashboard = () => {
     try {
       const endpoint = currentStatus ? "deactivate" : "activate";
       const data = await request(
-        `http://localhost:5000/api/admin/students/${studentId}/${endpoint}`,
+        `${apiBase}/admin/students/${studentId}/${endpoint}`,
         { method: "PUT" },
       );
       setSuccess(data.message || "Status updated");
@@ -191,7 +193,7 @@ const SchoolAdminDashboard = () => {
       };
 
       const data = await request(
-        `http://localhost:5000/api/admin/students/${editingStudentId}`,
+        `${apiBase}/admin/students/${editingStudentId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -215,7 +217,7 @@ const SchoolAdminDashboard = () => {
 
   const fetchStudentDetails = async (studentId) => {
     try {
-      const data = await request(`http://localhost:5000/api/admin/students/${studentId}`);
+      const data = await request(`${apiBase}/admin/students/${studentId}`);
       setStudentDetails(data);
       setSelectedStudent(studentId);
     } catch (e) {
@@ -239,7 +241,7 @@ const SchoolAdminDashboard = () => {
       setError("");
       setSuccess("");
       const data = await request(
-        `http://localhost:5000/api/admin/students/${studentId}/reset-password`,
+        `${apiBase}/admin/students/${studentId}/reset-password`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -274,7 +276,7 @@ const SchoolAdminDashboard = () => {
     try {
       setError("");
       setSuccess("");
-      await request(`http://localhost:5000/api/admin/students/${studentId}/performance-comments`, {
+      await request(`${apiBase}/admin/students/${studentId}/performance-comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ log_id: logId, comment }),

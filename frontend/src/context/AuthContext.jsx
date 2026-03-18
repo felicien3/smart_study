@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useReducer, useEffect } from "react";
+import { getApiUrl } from "../utils/helpers";
 
 const AuthContext = createContext();
 
@@ -53,7 +54,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem("token");
     if (token) {
       // Verify token with backend
-      fetch("http://localhost:5000/api/dashboard", {
+      fetch(`${getApiUrl()}/api/dashboard`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

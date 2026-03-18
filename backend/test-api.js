@@ -1,7 +1,7 @@
 // Simple API test script
 // Note: This requires Node.js 18+ for built-in fetch
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = process.env.API_BASE || "http://localhost:5001";
 
 async function testAPI() {
     console.log('🧪 Testing SmartStudy API Endpoints...\n');

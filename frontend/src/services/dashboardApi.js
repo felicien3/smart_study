@@ -1,4 +1,6 @@
-const API_BASE = "http://localhost:5000/api";
+import { getApiUrl } from "../utils/helpers";
+
+const API_BASE = `${getApiUrl()}/api`;
 
 const request = async (path, options = {}, token) => {
   const response = await fetch(`${API_BASE}${path}`, {
